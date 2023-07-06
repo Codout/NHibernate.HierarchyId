@@ -1,6 +1,6 @@
 # NHibernate.HierarchyId
 
-Adds support for MS SQL [HierarchyId](http://msdn.microsoft.com/library/bb677290.aspx) type to NHibernate 3
+Adds support for MS SQL [HierarchyId](http://msdn.microsoft.com/library/bb677290.aspx) type to NHibernate
 
 ## Implementation status
 
