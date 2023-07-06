@@ -3,147 +3,130 @@ using NHibernate.HierarchyId;
 using Tests.NhibernateMappings;
 using Xunit;
 
-namespace Tests
+namespace Tests;
+
+public class HqlTests : TestsBase
 {
-    public class HqlTests : TestsBase
+    [Fact]
+    public void IsDescendantOfTest()
     {
-        [Fact]
-        public void IsDescendantOfTest()
-        {
-            using (var s = Config.SessionFactory.OpenSession())
-            {
-                var parent = Items.First();
+        using var s = Config.SessionFactory.OpenSession();
+        var parent = Items.First();
 
-                var childs = s.CreateQuery("SELECT Hid FROM HierarchyModel WHERE hid_IsDescendantOf(Hid, :hid) AND Hid != :hid")
-                     .SetString("hid", parent.Key)
-                     .List<string>();
+        var childs = s.CreateQuery("SELECT Hid FROM HierarchyModel WHERE hid_IsDescendantOf(Hid, :hid) AND Hid != :hid")
+            .SetString("hid", parent.Key)
+            .List<string>();
 
-                Assert.Equal(parent.Value, childs);
-            }
-        }
+        Assert.Equal(parent.Value, childs);
+    }
 
-        [Fact]
-        public void GetAncestorTest()
-        {
-            using (var s = Config.SessionFactory.OpenSession())
-            {
-                var hid = Items.Select(x => x.Key).First();
+    [Fact]
+    public void GetAncestorTest()
+    {
+        using var s = Config.SessionFactory.OpenSession();
+        var hid = Items.Select(x => x.Key).First();
 
-                var ancestor = s.CreateQuery("SELECT hid_GetAncestor(Hid, :level) FROM HierarchyModel WHERE Hid = :hid")
-                                .SetString("hid", hid)
-                                .SetInt32("level", 1)
-                                .UniqueResult<string>();
+        var ancestor = s.CreateQuery("SELECT hid_GetAncestor(Hid, :level) FROM HierarchyModel WHERE Hid = :hid")
+            .SetString("hid", hid)
+            .SetInt32("level", 1)
+            .UniqueResult<string>();
 
-                Assert.Equal("/", ancestor);
-            }
-        }
+        Assert.Equal("/", ancestor);
+    }
 
-        [Fact]
-        public void GetDescendantBetweenChildsTest()
-        {
-            using (var s = Config.SessionFactory.OpenSession())
-            {
-                var parent = Items.First();
+    [Fact]
+    public void GetDescendantBetweenChildsTest()
+    {
+        using var s = Config.SessionFactory.OpenSession();
+        var parent = Items.First();
 
-                var descendant =
-                    s.CreateQuery("SELECT hid_GetDescendant(Hid, :child1, :child2) FROM HierarchyModel WHERE Hid = :hid")
-                     .SetString("hid", parent.Key)
-                     .SetString("child1", parent.Value[0])
-                     .SetString("child2", parent.Value[1])
-                     .UniqueResult<string>();
+        var descendant =
+            s.CreateQuery("SELECT hid_GetDescendant(Hid, :child1, :child2) FROM HierarchyModel WHERE Hid = :hid")
+                .SetString("hid", parent.Key)
+                .SetString("child1", parent.Value[0])
+                .SetString("child2", parent.Value[1])
+                .UniqueResult<string>();
 
-                Assert.Equal("/1/1.1/", descendant);
-            }
-        }
+        Assert.Equal("/1/1.1/", descendant);
+    }
 
-        [Fact]
-        public void GetDescendantFirstTest()
-        {
-            using (var s = Config.SessionFactory.OpenSession())
-            {
-                var parent = Items.First();
+    [Fact]
+    public void GetDescendantFirstTest()
+    {
+        using var s = Config.SessionFactory.OpenSession();
+        var parent = Items.First();
 
-                var descendant = s.QueryOver<HierarchyModel>()
-                           .Where(x => x.Hid == parent.Key)
-                           .Select(x => x.Hid.GetDescendant(null, null))
-                           .SingleOrDefault<string>();
+        var descendant = s.QueryOver<HierarchyModel>()
+            .Where(x => x.Hid == parent.Key)
+            .Select(x => x.Hid.GetDescendant(null, null))
+            .SingleOrDefault<string>();
 
-                Assert.Equal("/1/1/", descendant);
-            }
-        }
+        Assert.Equal("/1/1/", descendant);
+    }
 
-        [Fact]
-        public void GetReparentedValueTest()
-        {
-            using (var s = Config.SessionFactory.OpenSession())
-            {
-                var item = Items.First();
-                var hid = item.Value[0];
+    [Fact]
+    public void GetReparentedValueTest()
+    {
+        using var s = Config.SessionFactory.OpenSession();
+        var item = Items.First();
+        var hid = item.Value[0];
 
-                var reparented = s.CreateQuery("SELECT hid_GetReparentedValue(Hid, :old, :new) FROM HierarchyModel WHERE Hid = :hid")
-                                  .SetString("hid", hid)
-                                  .SetString("old", item.Key)
-                                  .SetString("new", "/2/")
-                                  .UniqueResult<string>();
+        var reparented = s.CreateQuery("SELECT hid_GetReparentedValue(Hid, :old, :new) FROM HierarchyModel WHERE Hid = :hid")
+            .SetString("hid", hid)
+            .SetString("old", item.Key)
+            .SetString("new", "/2/")
+            .UniqueResult<string>();
 
-                var mustBe = hid.Replace(item.Key, "/2/");
+        var mustBe = hid.Replace(item.Key, "/2/");
 
-                Assert.Equal(mustBe, reparented);
-            }
-        }
+        Assert.Equal(mustBe, reparented);
+    }
 
-        [Fact]
-        public void Hid2StringTest()
-        {
-            using (var s = Config.SessionFactory.OpenSession())
-            {
-                var hid = Items.Select(x => x.Key).First();
+    [Fact]
+    public void Hid2StringTest()
+    {
+        using var s = Config.SessionFactory.OpenSession();
+        var hid = Items.Select(x => x.Key).First();
 
-                var shid = s.CreateQuery("SELECT to_string(Hid) FROM HierarchyModel WHERE Hid = :hid")
-                            .SetString("hid", hid)
-                            .UniqueResult<string>();                
+        var shid = s.CreateQuery("SELECT to_string(Hid) FROM HierarchyModel WHERE Hid = :hid")
+            .SetString("hid", hid)
+            .UniqueResult<string>();
 
-                Assert.Equal(hid, shid);
-            }
-        }
+        Assert.Equal(hid, shid);
+    }
 
-        [Fact]
-        public void HidParseTest()
-        {
-            using (var s = Config.SessionFactory.OpenSession())
-            {
-                var hid = Items.Select(x => x.Key).First();
+    [Fact]
+    public void HidParseTest()
+    {
+        using var s = Config.SessionFactory.OpenSession();
+        var hid = Items.Select(x => x.Key).First();
 
-                var hidValue = s.CreateQuery("SELECT Hid FROM HierarchyModel WHERE Hid = hid_Parse(:hid)")
-                                .SetString("hid", hid)
-                                .UniqueResult<string>();
-                                    
+        var hidValue = s.CreateQuery("SELECT Hid FROM HierarchyModel WHERE Hid = hid_Parse(:hid)")
+            .SetString("hid", hid)
+            .UniqueResult<string>();
 
-                Assert.Equal(hid, hidValue);
-            }
-        }
 
-        [Fact]
-        public void GetLevelTest()
-        {
-            using (var s = Config.SessionFactory.OpenSession())
-            {
-                var item = Items.First();
-                var hid1 = item.Key;
-                var hid2 = item.Value.First();
+        Assert.Equal(hid, hidValue);
+    }
 
-                var lvl1 = s.CreateQuery("SELECT hid_GetLevel(Hid) FROM HierarchyModel WHERE Hid = :hid")
-                            .SetString("hid", hid1)
-                            .UniqueResult<int>();                
+    [Fact]
+    public void GetLevelTest()
+    {
+        using var s = Config.SessionFactory.OpenSession();
+        var item = Items.First();
+        var hid1 = item.Key;
+        var hid2 = item.Value.First();
 
-                Assert.Equal(1, lvl1);
+        var lvl1 = s.CreateQuery("SELECT hid_GetLevel(Hid) FROM HierarchyModel WHERE Hid = :hid")
+            .SetString("hid", hid1)
+            .UniqueResult<int>();
 
-                var lvl2 = s.CreateQuery("SELECT hid_GetLevel(Hid) FROM HierarchyModel WHERE Hid = :hid")
-                            .SetString("hid", hid2)
-                            .UniqueResult<int>();
+        Assert.Equal(1, lvl1);
 
-                Assert.Equal(2, lvl2);
-            }
-        }
+        var lvl2 = s.CreateQuery("SELECT hid_GetLevel(Hid) FROM HierarchyModel WHERE Hid = :hid")
+            .SetString("hid", hid2)
+            .UniqueResult<int>();
+
+        Assert.Equal(2, lvl2);
     }
 }

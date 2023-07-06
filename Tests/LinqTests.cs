@@ -115,7 +115,7 @@ namespace Tests
                 var hid = Items.Select(x => x.Key).First();
 
                 var hidValue = s.Query<HierarchyModel>()
-                         .Where(x => x.Hid == hid.ToHierarchyId())
+                         .Where(x => x.Hid == hid)
                          .Select(x => x.Hid)
                          .SingleOrDefault();
 
